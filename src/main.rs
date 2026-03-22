@@ -1,9 +1,9 @@
 use kvm_ioctls::Kvm;
-use std::io::{stdout, Write};
 use kvm_bindings::kvm_userspace_memory_region;
 use kvm_ioctls::VcpuExit;
 use std::alloc::{alloc_zeroed, Layout};
 
+const GUEST_MEM_SIZE: usize = 0x1000;
 fn main() {
     let kvm = Kvm::new().unwrap();
     let vm = kvm.create_vm().unwrap();
@@ -15,8 +15,8 @@ fn main() {
 
 
     let mut vcpu = vm.create_vcpu(0).unwrap();
-    let mem_size: usize = 0x1000000;
-    let layout = Layout::from_size_align(mem_size, 0x1000000).unwrap();
+    let mem_size: usize = GUEST_MEM_SIZE;
+    let layout = Layout::from_size_align(mem_size, GUEST_MEM_SIZE).unwrap();
     let mut mem = unsafe {alloc_zeroed(layout)};
     unsafe {*mem = 0xB0;
     *mem.add(1) = 0x48;
@@ -30,11 +30,11 @@ fn main() {
         slot: 0,
         flags: 0,
         guest_phys_addr: 0 as u64,
-        memory_size: 0x1000000 as u64,
+        memory_size: GUEST_MEM_SIZE as u64,
         userspace_addr: mem as u64,
     
 };
-    let memory = unsafe{vm.set_user_memory_region(region).unwrap(); };
+    unsafe{vm.set_user_memory_region(region).unwrap(); };
 
     let mut sregs = vcpu.get_sregs().unwrap();
     sregs.cs.base = 0;
